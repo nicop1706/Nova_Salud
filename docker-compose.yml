@@ -1,0 +1,101 @@
+# Nova Salud · producción local.  Uso:  cp .env.example .env && docker compose up --build
+name: nova-salud
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-novasalud}
+      POSTGRES_USER: ${POSTGRES_USER:-novasalud}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+      TZ: America/Lima
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks: [internal]
+
+  backend:
+    build:
+      context: ./backend
+      target: runtime
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgres://${POSTGRES_USER:-novasalud}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-novasalud}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Define JWT_ACCESS_SECRET en .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Define JWT_REFRESH_SECRET en .env}
+      ACCESS_TOKEN_TTL_MIN: ${ACCESS_TOKEN_TTL_MIN:-15}
+      REFRESH_TOKEN_TTL_DAYS: ${REFRESH_TOKEN_TTL_DAYS:-7}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-300}
+      LOGIN_RATE_LIMIT_MAX: ${LOGIN_RATE_LIMIT_MAX:-10}
+      LOGIN_MAX_FAILED_ATTEMPTS: ${LOGIN_MAX_FAILED_ATTEMPTS:-5}
+      LOGIN_LOCK_MINUTES: ${LOGIN_LOCK_MINUTES:-15}
+      BCRYPT_ROUNDS: ${BCRYPT_ROUNDS:-12}
+      STORE_NAME: ${STORE_NAME:-Nova Salud}
+      STORE_RUC: ${STORE_RUC:-20000000000}
+      STORE_ADDRESS: ${STORE_ADDRESS:-Av. Comercial 123, Lima, Perú}
+      STORE_PHONE: ${STORE_PHONE:-(01) 000-0000}
+      IGV_RATE: ${IGV_RATE:-0.18}
+      MAX_SELLER_DISCOUNT_PCT: ${MAX_SELLER_DISCOUNT_PCT:-5}
+      EXPIRY_ALERT_DAYS: ${EXPIRY_ALERT_DAYS:-30,60,90}
+      ALERT_CRON: ${ALERT_CRON:-0 * * * *}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-Admin#2026}
+      SEED_SELLER_PASSWORD: ${SEED_SELLER_PASSWORD:-Vendedor#2026}
+      SEED_WAREHOUSE_PASSWORD: ${SEED_WAREHOUSE_PASSWORD:-Almacen#2026}
+      AUTO_MIGRATE: ${AUTO_MIGRATE:-true}
+      AUTO_SEED: ${AUTO_SEED:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      TZ: America/Lima
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [internal]
+
+  frontend:
+    build:
+      context: ./frontend
+      target: runtime
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [internal]
+
+  # Administrador de BD opcional:  docker compose --profile tools up -d adminer  → http://localhost:8081
+  adminer:
+    image: adminer:4-standalone
+    profiles: ["tools"]
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+    ports:
+      - "127.0.0.1:${ADMINER_PORT:-8081}:8080"
+    networks: [internal]
+
+volumes:
+  pgdata:
+
+networks:
+  internal:
