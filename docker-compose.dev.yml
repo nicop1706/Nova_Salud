@@ -1,0 +1,67 @@
+# Nova Salud · desarrollo con recarga en caliente.
+#   docker compose -f docker-compose.dev.yml up --build
+# Frontend: http://localhost:5173 · API: http://localhost:4000/api · Swagger: http://localhost:4000/api/docs
+name: nova-salud-dev
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-novasalud}
+      POSTGRES_USER: ${POSTGRES_USER:-novasalud}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+      TZ: America/Lima
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: ./backend
+      target: dev
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgres://${POSTGRES_USER:-novasalud}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-novasalud}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Define JWT_ACCESS_SECRET en .env}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Define JWT_REFRESH_SECRET en .env}
+      CORS_ORIGINS: http://localhost:5173
+      TRUST_PROXY: 0
+      BCRYPT_ROUNDS: 8
+      LOG_LEVEL: debug
+      AUTO_MIGRATE: "true"
+      AUTO_SEED: "true"
+      TZ: America/Lima
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/migrations:/app/migrations
+      - ./backend/seeds:/app/seeds
+
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    depends_on:
+      - backend
+    environment:
+      VITE_API_PROXY: http://backend:4000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/public:/app/public
+
+volumes:
+  pgdata-dev:
