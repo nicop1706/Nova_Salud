@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-ink-50 font-sans text-ink-900 antialiased dark:bg-ink-950 dark:text-ink-100;
+  }
+  /* Foco visible para navegación por teclado (POS y formularios) */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-600 ring-offset-2 ring-offset-white dark:ring-brand-500 dark:ring-offset-ink-900;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    @apply text-ink-500 dark:text-ink-400;
+  }
+  /* Evita el zoom automático en iOS al enfocar campos */
+  @media (max-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+}
+
+@layer components {
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  .kbd {
+    @apply inline-flex min-w-[1.5rem] items-center justify-center rounded border border-ink-300 bg-ink-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-ink-700 dark:border-ink-600 dark:bg-ink-800 dark:text-ink-200;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
