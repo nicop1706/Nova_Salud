@@ -18,13 +18,13 @@ export const apiLimiter = rateLimit({
 
 /** Límite estricto para login (fuerza bruta). Solo cuentan los intentos fallidos. */
 export const loginLimiter = rateLimit({
-  windowMs: 15 * 60_000,
+  windowMs: 1 * 60_000,
   limit: env.LOGIN_RATE_LIMIT_MAX,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   skipSuccessfulRequests: true,
   skip: () => isTest,
-  handler: limitHandler('Demasiados intentos de inicio de sesión. Espera 15 minutos.'),
+  handler: limitHandler('Demasiados intentos de inicio de sesión. Espera 1 minuto.'),
 });
 
 /**
