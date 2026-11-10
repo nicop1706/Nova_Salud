@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es-PE">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#047857" />
+    <meta name="description" content="Nova Salud: gestión de inventario, ventas y atención al cliente de la botica." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>Nova Salud · Gestión de botica</title>
+    <script>
+      // Aplica el tema antes de pintar para evitar parpadeo
+      try {
+        var t = localStorage.getItem('ns_theme');
+        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
